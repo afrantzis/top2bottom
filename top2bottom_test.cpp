@@ -136,37 +136,6 @@ SCENARIO("top2bottom", "")
         }
     }
 
-    GIVEN("An email that is not top posted")
-    {
-        std::vector<std::string> const email{
-            "a",
-            "b",
-            "",
-            "> c",
-            "d",
-            "> e",
-            };
-
-        WHEN("converting to bottom")
-        {
-            ConversionError conversion_error{0};
-
-            try
-            {
-                top2bottom(email);
-            }
-            catch (ConversionError const& error)
-            {
-                conversion_error = error;
-            }
-
-            THEN("exception with offending line index is thrown")
-            {
-                REQUIRE(conversion_error.line_index == 5);
-            }
-        }
-    }
-
     GIVEN("An email with empty quoted lines at the end")
     {
         std::vector<std::string> const email{
@@ -290,4 +259,96 @@ SCENARIO("top2bottom", "")
             }
         }
     }
+
+    GIVEN("An originally interleaved-posted email continued as top-posted")
+    {
+        std::vector<std::string> const email{
+            "a",
+            "",
+            "ATTRIBUTION",
+            "> b",
+            ">",
+            "> ATTRIBUTION",
+            ">> ATTRIBUTION",
+            ">>> ATTRIBUTION",
+            ">>>> c",
+            ">>>> d",
+            ">>> e",
+            ">>>",
+            ">>> f",
+            ">>>> g",
+            ">>>> h",
+            ">>>",
+            ">>> i",
+            ">> j",
+            ">>> k",
+            ">",
+            ""
+            };
+
+        WHEN("converting to bottom")
+        {
+            auto const bottom = top2bottom(email);
+
+            THEN("the email is converted to bottom")
+            {
+                REQUIRE_THAT(lines_of(bottom), Equals(
+                    std::vector<std::string>{
+                        "ATTRIBUTION",
+                        "> ATTRIBUTION",
+                        ">> ATTRIBUTION",
+                        ">>> ATTRIBUTION",
+                        ">>>> c",
+                        ">>>> d",
+                        ">>> e",
+                        ">>>",
+                        ">>> f",
+                        ">>>> g",
+                        ">>>> h",
+                        ">>>",
+                        ">>> i",
+                        ">> j",
+                        ">>> k",
+                        ">",
+                        "> b",
+                        ">",
+                        "",
+                        "a",
+                        "",
+                        }));
+            }
+        }
+    }
+
+    GIVEN("A complex mixed email")
+    {
+        std::vector<std::string> const email{
+            "a",
+            "b",
+            "",
+            "> c",
+            "d",
+            ">> e",
+            };
+
+        WHEN("converting to bottom")
+        {
+            ConversionError conversion_error{0};
+
+            try
+            {
+                top2bottom(email);
+            }
+            catch (ConversionError const& error)
+            {
+                conversion_error = error;
+            }
+
+            THEN("exception with offending line index is thrown")
+            {
+                REQUIRE(conversion_error.line_index == 5);
+            }
+        }
+    }
+
 }

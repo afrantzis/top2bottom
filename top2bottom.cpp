@@ -27,6 +27,8 @@
 namespace
 {
 
+static auto constexpr size_t_max = std::numeric_limits<std::size_t>::max();
+
 struct LineInfo
 {
     std::size_t depth;
@@ -65,8 +67,6 @@ LineInfo parse_line(std::string const& line)
 
 inline std::size_t body_key(std::size_t depth)
 {
-    static auto constexpr size_t_max = std::numeric_limits<std::size_t>::max();
-
     return size_t_max - 10 * depth;
 }
 
@@ -99,7 +99,7 @@ public:
     {
         auto const info = parse_line(line);
 
-        check_top_posted(info);
+        update_interleaved_depth(info);
 
         if (info.depth > depth)
             fix_attribution();
@@ -109,18 +109,37 @@ public:
         depth = info.depth;
     }
 
+    void post_process_for_interleaved()
+    {
+        for (auto& al : annotated)
+        {
+            if (al.info.depth >= interleaved_depth)
+                al.key = body_key(interleaved_depth);
+        }
+    }
+
     std::vector<AnnotatedLine> annotated;
 
 private:
     std::size_t depth = 0;
     bool depth_increasing = true;
+    std::size_t interleaved_depth = size_t_max;
+    std::size_t max_depth = 0;
 
-    void check_top_posted(LineInfo const& info)
+    void update_interleaved_depth(LineInfo const& info)
     {
         if (!depth_increasing && info.depth > depth)
-            throw ConversionError{annotated.size()};
+        {
+            interleaved_depth = std::min(interleaved_depth, depth);
+            if (info.depth > max_depth)
+                throw ConversionError{annotated.size()};
+        }
         else if (info.depth < depth && depth_increasing)
+        {
             depth_increasing = false;
+        }
+
+        max_depth = std::max(max_depth, info.depth);
     }
 
     void fix_attribution()
@@ -158,6 +177,8 @@ std::vector<std::string const*> top2bottom(std::vector<std::string> const& lines
 
     for (auto const& line : lines)
         ctx.process(line);
+
+    ctx.post_process_for_interleaved();
 
     std::stable_sort(
         ctx.annotated.begin(), ctx.annotated.end(),
