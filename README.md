@@ -1,4 +1,4 @@
-top2bottom is a command-line tool that converts top-posted emails to
+top2bottom is a command-line tool that converts top-posted email messages to
 bottom-posted.
 
 # Building requirements
@@ -30,6 +30,10 @@ To install use:
 
 `$ [DESTDIR=...] ninja -C build install`
 
+Run the tests with:
+
+`$ ninja -C build test`
+
 # Running
 
 You can run top2bottom with:
@@ -38,8 +42,7 @@ You can run top2bottom with:
 
 # Supported top-posting flavor
 
-top2bottom supports a particular flavor of top-posted emails which follow the
-format:
+top2bottom supports a particular flavor of top-posted messages that looks like:
 
     aaa
 
@@ -50,8 +53,9 @@ format:
     >>
     >> ccc
 
-top2bottom also supports conversion of emails which were originally
-bottom-posted but at some point were changed to top-posted:
+top2bottom also supports conversion of messages which were originally
+bottom-posted or interleaved-posted but at some point continued as
+top-posted:
 
     aaa
 
@@ -59,9 +63,14 @@ bottom-posted but at some point were changed to top-posted:
     > C wrote:
     >>
     >> ccc
+    > bbb
+    >> ccc
     >
     > bbb
 
-If top2bottom cannot convert the email, then it returns the original message in
-stdout, and a warning with information about which line caused the
+Messages that are already properly bottom-posted or interleaved-posted are
+returned unchanged.
+
+If top2bottom cannot convert a message, then it returns the message
+unchanged in stdout, and a warning with information about which line caused the
 conversion to fail in stderr.
